@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>我的技术与生活——Flume部署 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="shortcut icon" href="/imgs/shortcut-icon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/css/public.css" />
+  <link rel="stylesheet" href="/css/layout.css" />
+  <link rel="stylesheet" href="/css/iconfont.css" />
+  <link rel="stylesheet" href="/css/APlayer.min.css" />
+  <script src="/js/APlayer.min.js"></script>
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/jquery.pjax.min.js"></script>
+
+  <script src='//unpkg.com/valine/dist/Valine.min.js'></script>
+  <script>
+    document.title = `我的技术与生活——Flume部署`
+  </script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<style>
+  .load {
+    width: 100%;
+    height: 100vh;
+    background-color: rgb(37, 35, 40);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 9999;
+  }
+  .load-circle {
+    width: 80px;
+    height: 80px;
+    border: 8px solid orange;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: rotate 1s linear infinite;
+    filter: drop-shadow(0 0 3px orange);
+  }
+  .load-circle-inner {
+    width: 40px;
+    height: 40px;
+    border: 8px solid orange;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: rotate-reverse .5s linear infinite;
+  }
+  .load-text {
+    margin-top: 20px;
+    font-size: 24px;
+    color: orange;
+    display: flex;
+  }
+  .load-text span {
+    margin: 0 5px;
+    text-shadow: 5px 5px 5px orange;
+    animation: move 1s linear infinite;
+  }
+  .load-text span:nth-child(1) {
+    animation-delay: -0.6s;
+  }
+  .load-text span:nth-child(2) {
+    animation-delay: -0.5s;
+  }
+  .load-text span:nth-child(3) {
+    animation-delay: -0.4s;
+  }
+  .load-text span:nth-child(4) {
+    animation-delay: -0.3s;
+  }
+  .load-text span:nth-child(5) {
+    animation-delay: -0.2s;
+  }
+  .load-text span:nth-child(6) {
+    animation-delay: -0.1s;
+  }
+  @keyframes rotate {
+    0% { transform: rotate(0); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes rotate-reverse {
+    0% { transform: rotate(0); }
+    100% { transform: rotate(-360deg); }
+  }
+  @keyframes move {
+    0% { transform: translateY(0%) rotate(0) scale(1); }
+    20% { transform: translateY(20%) rotate(10deg) scale(1.2); }
+    80% { transform: translateY(-10%) rotate(-20deg) scale(.8);}
+    100% { transform: translateY(0) rotate(0) scale(1); }
+  }
+
+  .progress {
+    position: fixed;
+    left: 0; top: 0;
+    width: 0;
+    height: 3px;
+    background-color: green;
+    transition: all cubic-bezier(0.215, 0.610, 0.355, 1) .1s;
+    z-index: 9999;
+  }
+
+  .to-up {
+    animation: toUp .5s 1;
+  }
+  .gray {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 9999;
+    display: none;
+    pointer-events: none;
+    background-color: #000;
+    mix-blend-mode: color;
+  }
+  @keyframes toUp {
+    from { transform: translateY(15px); opacity: 0; }
+    to { transform: translateY(0) ; opacity: 1; }
+  }
+</style>
+<body>
+  <div id="load" class="load">
+    <div class="load-circle">
+      <div class="load-circle-inner"></div>
+    </div>
+    <p class="load-text">
+      <span>L</span>
+      <span>O</span>
+      <span>A</span>
+      <span>D</span>
+      <span>I</span>
+      <span>N</span>
+      <span>G</span>
+    </p>
+  </div>
+  <div id="container" class="container w-100 vh-100" style="display: none;">
+    <header class="header">
+  <div class="header-wrapper">
+    <div class="header-left">
+      <div class="header-search">
+        <input id="search-input" type="text" class="header-search--input" placeholder="请输入要检索的文章标题" />
+        <span id="search-btn" class="header-search--icon"><i class="iconfont icon-sousuo"></i></span>
+      </div>
+      <div id="search-layer" class="header-search--layer hidden">
+        <p class="title">
+          <span>以下是搜索内容：</span>
+          <span id="close-layer-btn">关闭</span>
+        </p>
+        <ul>
+        </ul>
+      </div>
+    </div>
+    <div class="header-right">
+      <ul class="header-menu">
+        <li>
+          <a href="http://example.com/">
+            <i class="header-menu--icon iconfont icon-shouye"></i>
+            <span class="header-menu--span">首页</span>
+          </a>
+        </li>
+        <li>
+          <a href="http://example.com/log">
+            <i class="header-menu--icon iconfont icon-rizhi"></i>
+            <span class="header-menu--span">日志</span>
+          </a>
+        </li>
+        <li>
+          <a href="http://example.com/link">
+            <i class="header-menu--icon iconfont icon-youqinglianjie"></i>
+            <span class="header-menu--span">友情链接</span>
+          </a>
+        </li>
+        <li>
+          <a href="http://example.com/about">
+            <i class="header-menu--icon iconfont icon-guanyuwomen"></i>
+            <span class="header-menu--span">关于我</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<script>
+  const ipt = document.querySelector('#search-input')
+  const btn = document.querySelector('#search-btn')
+  const layer = document.querySelector('#search-layer')
+  const posts = JSON.parse(`[{"title":"Eagle","path":"2023/06/24/Eagle/"},{"title":"Docker","path":"2023/06/09/Docker/"},{"title":"Git","path":"2023/06/13/Git配置/"},{"title":"kafka","path":"2023/06/24/Kafka/"},{"title":"Flume部署","path":"2023/06/19/Flume部署/"},{"title":"Zookeeper","path":"2023/06/18/Zookeeper/"},{"title":"hive部署","path":"2023/06/15/hive/"},{"title":"flume","path":"2023/06/19/flume/"},{"title":"六、Spark（Pyspark基础编码环境）","path":"2023/06/09/pyspark/"},{"title":"Spark Local环境部署","path":"2023/06/12/spark-local/"},{"title":"stand-alone,HA,Yarn","path":"2023/06/13/stand-alone和HA和Yarn/"},{"title":"sqoop","path":"2023/06/19/sqoop/"}]`)
+  ipt.addEventListener('keyup', e => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  })
+  btn.addEventListener('click', () => {
+    handleSearch()
+  })
+
+  document.querySelector('#close-layer-btn').addEventListener('click', () => {
+    layer.classList.toggle('hidden')
+  })
+
+  function handleSearch() {
+    if (ipt.value.trim() === '') {
+      return
+    }
+    let html = ''
+    const targetPosts = posts.filter(post => post.title.includes(ipt.value))
+    targetPosts.forEach(post => {
+      html += `
+        <li>
+          <div>
+            <a href="/${post.path}">${post.title.replace(new RegExp(ipt.value), `<span>${ipt.value}</span>`)}</a>
+          </div>
+          <img src="${post.cover || '/imgs/default-cover.webp' }" />
+        </li>
+      `
+    })
+    if (html.trim () === '') {
+      html += '<p class="empty">没有搜索到内容</p>'
+    }
+    layer.querySelector('ul').innerHTML = html
+    layer.classList.remove('hidden')
+  }
+</script> 
+    <section id="main" class="main">
+      <div class="main-left-wrapper">
+<div class="main-left">
+  <div class="main-left--block">
+    <div class="main-left--info">
+      <img src="/imgs/avatar.jpg"" class="main-left--avatar" />
+      <div class="main-left--intro">
+        <p class="main-left--name">wuluo.</p>
+        <div class="main-left--tags">
+          <span class="main-left--tag">二次元的欧皇</span>
+          <span class="main-left--tag">三次元的非酋</span>
+        </div>
+      </div>
+    </div>
+  
+    <div>
+      <div class="main-left--motto">
+        <p>“笑口常开，好彩自然来”</p>
+        <p>“一个想要暴富的女孩”</p>
+      </div>
+      <div class="main-left--github">
+        <span class="line"></span>
+        <a target="_blank" rel="noopener" href="https://github.com/Aizener"><i class="logo iconfont icon-github-fill"></i></a>
+        <span class="line"></span>
+      </div>
+      <div class="main-left--statics">
+        <a href="/categories">
+          <div>
+            <span>0</span>
+            <span>分类</span>
+          </div>
+        </a>
+        <a href="/tags">
+          <div>
+            <span>0</span>
+            <span>标签</span>
+          </div>
+        </a>
+        <a href="/archives">
+          <div>
+            <span>1 </span>
+            <span>归档</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-left--block">
+    <ul class="main-left--menu">
+      
+        <li>
+          <a href="/">
+            <span class="header-menu--span">小站首页</span>
+            <i class="header-menu--icon iconfont icon-shouye"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/log">
+            <span class="header-menu--span">个人日志</span>
+            <i class="header-menu--icon iconfont icon-rizhi"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/link">
+            <span class="header-menu--span">友情链接</span>
+            <i class="header-menu--icon iconfont icon-youqinglianjie"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/about">
+            <span class="header-menu--span">关于自己</span>
+            <i class="header-menu--icon iconfont icon-guanyuwomen"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a href="/tools">
+            <span class="header-menu--span">我的工具</span>
+            <i class="header-menu--icon iconfont icon-gongju"></i>
+          </a>
+        </li>
+      
+    </ul>
+  </div>
+
+  <div class="main-left--block">
+    <div class="main-left--site">
+      <h5 class="main-left--title">
+        <span>站点信息</span>
+        <i class="iconfont icon-zhandian"></i>
+      </h5>
+      <p class="main-left--subtitle">
+        <span>文章数目：</span>
+        <span>12 篇</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>最近动态：</span>
+        <span>今天</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>上线时间：</span>
+        <span>15天</span>
+      </p>
+      <p class="main-left--subtitle">
+        <span>当前版本：</span>
+        <span>v1.0.2</span>
+      </p>
+    </div>
+  </div>
+</div></div>
+      <div id="main-container" class="main-container">
+
+
+  <style>
+pre::-webkit-scrollbar {
+  width: 5px;
+  height: 10px;
+  background-color:#F5F5F5;
+}
+/*定义滚动条轨道
+内阴影+圆角*/
+pre::-webkit-scrollbar-track {
+  background-color:#F5F5F5;
+}
+/*定义滑块
+内阴影+圆角*/
+pre::-webkit-scrollbar-thumb {
+  background-color: rgb(69, 83, 100);
+}
+
+pre:active {
+  background-color: rgb(81, 95, 116);
+}
+</style>
+
+<div class="article-container">
+  <div class="article">
+    <h1 class="article-title">Flume部署</h1>
+    <div class="article-info">
+      <div class="article-info--item">
+        <div class="article-info--info">
+          
+          <div class="article-info--categories">
+            <span>分类：</span>
+            
+          </div>
+          
+          
+          <div class="article-info--tags">
+            <span>标签：</span>
+            
+          </div>
+          
+          <p class="article-info--date">日期：2023-06-19 15:01:29</p>
+        </div>
+        <img src="/imgs/default-cover.webp" alt="" class="article-cover">
+      </div>
+    </div>
+    <article class="article-content">
+      <p>#一. Flume配置</p>
+<p>前提 Flume使用需要依赖JDK1.8以上环境，确保已安装</p>
+<p>1.下载Flume下载页面：<br><a target="_blank" rel="noopener" href="http://flume.apache.org/download.html">http://flume.apache.org/download.html</a><br>2.将 apache-flume-1.9.0-bin.tar.gz上传到export&#x2F;server系统中，对其解压</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar vxzf apache-flume-1.9.0-bin.tar.gz</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%871.png"></p>
+<p>3.设置软连接</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ln -s apache-flume-1.9.0-bin flume</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%872.png"></p>
+<p>4.将Flume安装目录配置到PATH中添加以下，方便在任意目录使用</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/profile</span><br><span class="line">#FLUME_HOME</span><br><span class="line">export FLUME_HOME=/export/server/flume</span><br><span class="line">export PATH=$PATH:$FLUME_HOME/bin</span><br></pre></td></tr></table></figure>
+<p>保存成功后刷新，不然不会读文件的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">source /etc/profile</span><br></pre></td></tr></table></figure>
+<p>可以通过echo $FLUME_HOME查看是否成功<br><img src="/../gmr/%E5%9B%BE%E7%89%873.png"></p>
+<p>可以输出flume的路径就代表成功<br>#二．入门示例<br>1.使用Flume监听某个端口，使用Netcat向这个端口发送数据，Flume将接收到的数据打印到控制台<br>2.首先我们先下载Netcat，它是一款TCP&#x2F;UDP测试工具</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install -y nc</span><br></pre></td></tr></table></figure>
+<p>3.在flume&#x2F;myconf目录下添加配置文件netcat-logger.conf</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"># example1-netcat-logger.conf: 单节点Flume配置</span><br><span class="line"># 定义agent名称为a1</span><br><span class="line"># 设置3个组件的名称</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.sinks = k1</span><br><span class="line">a1.channels = c1</span><br><span class="line"># 配置source类型为NetCat,监听地址为本机，端口为44444</span><br><span class="line">a1.sources.r1.type = netcat</span><br><span class="line">a1.sources.r1.bind = 0.0.0.0</span><br><span class="line">a1.sources.r1.port = 44444</span><br><span class="line">#source和channel关联</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line"># 配置channel类型为内存，内存队列最大容量为1000，一个事务中从source接收的Events数量或者发送给sink的Events数量最大为100</span><br><span class="line">a1.channels.c1.type = memory</span><br><span class="line">a1.channels.c1.capacity = 1000</span><br><span class="line">a1.channels.c1.transactionCapacity = 100</span><br><span class="line"># 配置sink类型为Logger</span><br><span class="line">a1.sinks.k1.type = logger</span><br><span class="line"># 将sink绑定到channel上</span><br><span class="line">a1.sinks.k1.channel = c1</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%874.png"></p>
+<p>4.启动flume<br>查看flume启动命令</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">flume-ng help</span><br></pre></td></tr></table></figure>
+<p>5.启动agent</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng agent -n a1 -c conf -f myconf/netcat-logger.conf -Dflume.root.logger=INFO,console</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%875.png"></p>
+<p>Flume可以正常运行<br>一般工作中使用</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup bin/flume-ng agent -n a1 -c conf -f myconf/example1-netcat-logger.conf 1&gt;/dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+<p>用 &#x2F;dev&#x2F;null 2&gt;&amp;1这条命令的意思是将标准输出和错误输出全部重定向到&#x2F;dev&#x2F;null中,也就是将产生的所有信息丢弃<br>6.使用Netcat测试<br>复制一个标签启动Netcat连接到44444端口，发送一些字符串</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc node1 44444</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%876.png"></p>
+<p>观察agent控制<br><img src="/../gmr/%E5%9B%BE%E7%89%877.png"></p>
+<p>   可以看到，他输出了我在另一个标签输入的数据<br>从这里我们可以看到事件由头部和字节数组组成。<br>7.如果开启了防火墙，需要添加防火墙规则</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=44444/tcp --permanent</span><br><span class="line">firewall-cmd –reload</span><br></pre></td></tr></table></figure>
+<p>8.使用telnet测试<br>检查是否有telnet；</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum list | grep telnet</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%878.png"><br>安装telnet</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">yum install -y telnet.x86_64</span><br><span class="line">yum install -y telnet-server.x86_64</span><br></pre></td></tr></table></figure>
+<p>启动telnet</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">telnet node1 44444</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%879.png"></p>
+<p>查看flume窗口</p>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8710.png"></p>
+<p>正常输出控制台的信息<br>#三．exec_source测试<br>Source：用于从数据源接收数据（即采集数据），需要设置数据的来源类型<br>1.exec-source启动一个用户所指定的linux shell命令,采集这个linux shell命令的标准输出，作为收集到的数据，转为event写入channel<br>2.配置文件，放在&#x2F;export&#x2F;server&#x2F;flume&#x2F;myconf</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">Vim example2-exec-source-logger.conf</span><br><span class="line"># example2-exec-source-logger.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.sinks = k1</span><br><span class="line">a1.sources.r1.type = exec</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.command = tail -F /export/data/flume-example-data/shell/access.log </span><br><span class="line">a1.sources.r1.batchSize = 100</span><br><span class="line">a1.channels.c1.type = memory</span><br><span class="line">a1.channels.c1.capacity = 1000</span><br><span class="line">a1.channels.c1.transactionCapacity = 100</span><br><span class="line">a1.sinks.k1.type = logger</span><br><span class="line">a1.sinks.k1.channel = c1</span><br><span class="line">3.启动测试</span><br><span class="line">准备一个日志文件</span><br><span class="line">写一个脚本模拟往日志文件中持续写入数据</span><br><span class="line">for i in &#123;1..10000&#125;; </span><br><span class="line">do echo $&#123;i&#125; “bigdata log”  &gt;&gt;  access.log ; </span><br><span class="line">sleep 0.5; </span><br><span class="line">done</span><br><span class="line">4.启动flume采集</span><br><span class="line">bin/flume-ng agent -n a1 -c conf/ -f myconf/example2-exec-source-logger.conf -Dflume.root.logger=INFO,console</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8711.png"></p>
+<p>#四．spooldir_source测试<br>1.监视一个指定的文件夹，如果文件夹下<code>有没采集过的新文件，则将这些</code>新文件中的数据采集，并转成event写入channel；<br>2.注意：spooling目录中的文件&#96;必须是不可变的（静态的），而且是不能重名的！否则，source会loudly fail！（抛异常）<br>3.配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">#example3-spooldir-source.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.sinks = k1</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.type = spooldir</span><br><span class="line">a1.sources.r1.spoolDir = /export/data/flume-example-data/spooldir </span><br><span class="line">a1.channels.c1.type = memory</span><br><span class="line">a1.channels.c1.capacity = 1000</span><br><span class="line">a1.channels.c1.transactionCapacity = 100</span><br><span class="line">a1.sinks.k1.type = logger</span><br><span class="line">a1.sinks.k1.channel = c1</span><br><span class="line">4.启动测试</span><br><span class="line">bin/flume-ng agent -n a1 -c conf -f myconf/example3-spooldir-source.conf -Dflume.root.logger=INFO,console</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8712.png"></p>
+<p>5.注意：spooldir source 与exec source不同，spooldir source本身是可靠的，会记录崩溃之前的采集位置<br>#五．taildir_source测试<br>1.taildir source会把读到的数据成功写入channel后，再更新记录偏移量，这种机制，能保证数据不会漏采（丢失），但是有可能会产生数据重复。<br>2.配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">#example4-taildir-source.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.sinks = k1</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.sources.r1.type = TAILDIR</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.positionFile = /export/data/flume-example-data/flumedata/taildir_position.json</span><br><span class="line">a1.sources.r1.filegroups = g1 g2</span><br><span class="line">a1.sources.r1.filegroups.g1 = /export/data/flume-example-data/weblog/web.*</span><br><span class="line">a1.sources.r1.filegroups.g2 = /export/data/flume-example-data/wxlog/wx.*</span><br><span class="line">a1.sources.r1.fileHeader = true</span><br><span class="line">#动态的header-keys eg：filepath=/../../../</span><br><span class="line">a1.sources.r1.fileHeaderKey = filepath</span><br><span class="line">#写死的header-keys（静态的） eg:a1 = aa1</span><br><span class="line">a1.sources.r1.headers.g1.a1 = aa1</span><br><span class="line">a1.sources.r1.headers.g1.b1 = bb1</span><br><span class="line">a1.sources.r1.headers.g2.a2 = aa2</span><br><span class="line">a1.sources.r1.headers.g2.b2 = bb2</span><br><span class="line">a1.sources.r1.maxBatchCount = 1000</span><br><span class="line">a1.channels.c1.type = memory</span><br><span class="line">a1.channels.c1.capacity = 10000</span><br><span class="line">a1.channels.c1.transactionCapacity = 1000</span><br><span class="line">a1.sinks.k1.type = logger</span><br><span class="line">a1.sinks.k1.channel = c1</span><br></pre></td></tr></table></figure>
+<p>3.启动测试</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng agent -n a1 -c conf/ -f  myconf/example4-taildir-source.conf -Dflume.root.logger=INFO,console</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8713.png"></p>
+<p>#六．avro source测试<br>Avro source 是通过监听一个网络端口来接收数据，而且接受的数据必须是使用avro序列化框架&#96;序列化后的数据（必须是：avro序列化流）；Avro是一种序列化框架<br>1.启动一个网络服务，监听一个端口，收集端口上收到的avro序列化数据流<br>2.配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#example5-avro-source.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.sources.r1.type = avro</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.bind = 0.0.0.0</span><br><span class="line">a1.sources.r1.port = 4141</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.channels.c1.type = memory</span><br><span class="line">a1.channels.c1.capacity = 200</span><br><span class="line">a1.channels.c1.transactionCapacity = 100</span><br><span class="line">a1.sinks = k1</span><br><span class="line">a1.sinks.k1.type = logger</span><br><span class="line">a1.sinks.k1.channel = c1</span><br></pre></td></tr></table></figure>
+<p>3.启动测试<br>启动agent：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng agent -c conf -f  myconf/example5-avro-source.conf -n a1 -Dflume.root.logger=INFO,console  </span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8714.png"></p>
+<p>新建avro-log.txt，用一个客户端去给启动好的source发送avro序列化数据：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng avro-client --host node1  --port 4141  -F /export/data/flume-example-data/avro-log.txt</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8715.png"></p>
+<p>#七．使用File Channel实现数据持久化<br>1.配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">#example6-file-channel.conf</span><br><span class="line"># 定义agent名称为a1</span><br><span class="line"># 设置3个组件的名称</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.sinks = k1</span><br><span class="line"># 多个channel使用空格分隔</span><br><span class="line">a1.channels = c1 c2</span><br><span class="line"># 配置source类型为NetCat,监听地址为本机，端口为44444</span><br><span class="line">a1.sources.r1.type = netcat</span><br><span class="line">a1.sources.r1.bind = 0.0.0.0</span><br><span class="line">a1.sources.r1.port = 44444</span><br><span class="line"># 配置sink类型为Logger</span><br><span class="line">a1.sinks.k1.type = logger</span><br><span class="line"># 配置channel类型为内存，内存队列最大容量为1000，一个事务中从source接收的Events数量或者发送给sink的Events数量最大为100</span><br><span class="line">a1.channels.c1.type = memory</span><br><span class="line">a1.channels.c1.capacity = 1000</span><br><span class="line">a1.channels.c1.transactionCapacity = 100</span><br><span class="line"># 配置FileChannel,checkpointDir为检查点文件存储目录，dataDirs为日志数据存储目录，</span><br><span class="line">a1.channels.c2.type = file</span><br><span class="line">a1.channels.c2.checkpointDir = /export/data/flume-example-data/flumedata/checkpoint_filechannel</span><br><span class="line">a1.channels.c2.dataDirs = /export/data/flume-example-data/flumedata/data_filechannel</span><br><span class="line"># 将source和sink绑定到channel上</span><br><span class="line"># source同时绑定到c1和c2上</span><br><span class="line">a1.sources.r1.channels = c1 c2</span><br><span class="line">a1.sinks.k1.channel = c1</span><br></pre></td></tr></table></figure>
+<p>4.启动测试</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng agent -n a1 -c conf -f myconf/example6-file-channel.conf -Dflume.root.logger=INFO,console</span><br></pre></td></tr></table></figure>
+<p>复制标签</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc node1 44444</span><br></pre></td></tr></table></figure>
+<p>输入内容<br><img src="/../gmr/%E5%9B%BE%E7%89%8716.png"></p>
+<p>如果不能正常输出<br>则，在配置文件中加入以下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># 将sink绑定到c2上</span><br><span class="line">a1.sinks.k1.channel = c2</span><br></pre></td></tr></table></figure>
+<p>重启Flume，可以看到会重新消费c2的数据<br>#八．利用avro source和avro sink实现agent级联<br>级联的场景属于跨网络中转传输<br>1.配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br></pre></td><td class="code"><pre><span class="line">#上游服务器配置 example7-1-taildir-f-avro.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.sinks = k1</span><br><span class="line"></span><br><span class="line">a1.sources.r1.type = TAILDIR</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.positionFile = /export/data/flume-example-data/flumedata/taildir_position.json</span><br><span class="line">a1.sources.r1.filegroups = g1 g2</span><br><span class="line">a1.sources.r1.filegroups.g1 = /export/data/flume-example-data/weblog/web.*</span><br><span class="line">a1.sources.r1.filegroups.g2 = /export/data/flume-example-data/wxlog/wx.*</span><br><span class="line">#提高吞吐量</span><br><span class="line">a1.sources.r1.batchSize = 1000</span><br><span class="line">#动态的header-keys eg：filepath=/../../../</span><br><span class="line">a1.sources.r1.fileHeaderKey = filepath</span><br><span class="line"></span><br><span class="line">#拦截器配置，添加header=timestamp</span><br><span class="line">a1.sources.r1.interceptors = i1</span><br><span class="line">a1.sources.r1.interceptors.i1.type = timestamp</span><br><span class="line">a1.sources.r1.interceptors.i1.headerName = timestamp</span><br><span class="line"></span><br><span class="line">a1.channels.c1.type = file</span><br><span class="line">#本机数据汇集检查点、event存储目录</span><br><span class="line">a1.channels.c1.checkpointDir = /export/data/flume-example-data/flumedata/checkpoint</span><br><span class="line">a1.channels.c1.dataDirs = /export/data/flume-example-data/flumedata/data</span><br><span class="line">a1.channels.c1.transactionCapacity = 2000</span><br><span class="line"></span><br><span class="line">a1.sinks.k1.channel = c1</span><br><span class="line">a1.sinks.k1.type = avro</span><br><span class="line">a1.sinks.k1.batch-size = 1000</span><br><span class="line">#下游目标主机、端口</span><br><span class="line">a1.sinks.k1.hostname = node3</span><br><span class="line">a1.sinks.k1.port = 44444</span><br><span class="line">2.下游</span><br><span class="line">#下游服务器配置 example7-2-avro-f-hdfs.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.sinks = k1</span><br><span class="line"></span><br><span class="line">#下游数据汇集avro source</span><br><span class="line">a1.sources.r1.type = avro</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.bind = 0.0.0.0</span><br><span class="line">a1.sources.r1.port = 44444</span><br><span class="line">a1.sources.r1.threads = 10</span><br><span class="line">a1.sources.r1.batchSize = 1000</span><br><span class="line"></span><br><span class="line">a1.channels.c1.type = file</span><br><span class="line">a1.channels.c1.checkpointDir = /export/data/flume-example-data/flumedata/checkpoint</span><br><span class="line">a1.channels.c1.dataDirs = /export/data/flume-example-data/flumedata/data</span><br><span class="line">a1.channels.c1.transactionCapacity = 2000</span><br><span class="line"></span><br><span class="line">#hdfs sink</span><br><span class="line">a1.sinks.k1.channel = c1</span><br><span class="line">a1.sinks.k1.type = hdfs</span><br><span class="line">a1.sinks.k1.hdfs.path = hdfs://node1:8020/logdata/%Y-%m-%d/%H/</span><br><span class="line">#eg：文件名 logdata_34438hxfd.log，在滚动时，logdata_34438hxfd.log.tmp</span><br><span class="line">a1.sinks.k1.hdfs.filePrefix = logdata_</span><br><span class="line">a1.sinks.k1.hdfs.fileSuffix = .log</span><br><span class="line"></span><br><span class="line">#三个条件没有优先级，谁先达到就进行滚动</span><br><span class="line">#按时间间隔滚动</span><br><span class="line">a1.sinks.k1.hdfs.rollInterval = 0</span><br><span class="line">#按文件大小滚动 256MB</span><br><span class="line">a1.sinks.k1.hdfs.rollSize = 268435456</span><br><span class="line">#按event条数滚动</span><br><span class="line">a1.sinks.k1.hdfs.rollCount = 100000</span><br><span class="line"></span><br><span class="line">a1.sinks.k1.hdfs.batchSize = 1000</span><br><span class="line">a1.sinks.k1.hdfs.codeC = gzip</span><br><span class="line">a1.sinks.k1.hdfs.fileType = CompressedStream</span><br></pre></td></tr></table></figure>
+<p>3.级联操作案例手册<br>级联案例操作手册</p>
+<ol>
+<li><p>启动hdfs，并检查工作状态</p>
+</li>
+<li><p>把案例的上游配置文件，保存到node1,node2上</p>
+</li>
+<li><p>把案例的下游配置文件，保存到node3上</p>
+</li>
+<li><p>启动下游node3上的flume agent</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng agent -n a1 -c conf/ -f myconf/example7-2-avro-f-hdfs.conf -Dflume.root.logger=DEBUG,console</span><br></pre></td></tr></table></figure></li>
+<li><p>（在node1和node2上）准备两个日志目录来生成模拟日志数据</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mkdir /export/data/flume-example-data/weblog/</span><br><span class="line">mkdir /export/data/flume-example-data/wxlog/</span><br></pre></td></tr></table></figure>
+<p>6.（在node1和node2上）利用shell脚本生成日志数据  </p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">vim avro-hdfs.sh</span><br><span class="line"></span><br><span class="line">while true</span><br><span class="line">do</span><br><span class="line">echo webwebwebwebweb &gt;&gt; /export/data/flume-example-data/weblog/web-access.log</span><br><span class="line">echo wxwxwxwxwxwxwx  &gt;&gt; /export/data/flume-example-data/wxlog/wx-access.log </span><br><span class="line">sleep 0.01</span><br><span class="line">done</span><br></pre></td></tr></table></figure>
+<p>7.启动node1和node2上的flume agent</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup bin/flume-ng agent -n a1 -c conf/ -f myconf/example7-1-taildir-f-avro.conf 1&gt;/dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8717.png"></p>
+</li>
+</ol>
+<p>#九．拦截器<br>1.配置文件</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"># example8-interceptor.conf</span><br><span class="line"># 定义agent名称为a1</span><br><span class="line"># 设置3个组件的名称</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.sinks = k1</span><br><span class="line">a1.channels = c1</span><br><span class="line"></span><br><span class="line"># 配置source类型为NetCat,监听地址为本机，端口为44444</span><br><span class="line">a1.sources.r1.type = netcat</span><br><span class="line">a1.sources.r1.bind = 0.0.0.0</span><br><span class="line">a1.sources.r1.port = 44444</span><br><span class="line"># 配置拦截器为host</span><br><span class="line">a1.sources.r1.interceptors = i1 </span><br><span class="line">a1.sources.r1.interceptors.i1.type = host</span><br><span class="line"></span><br><span class="line"># 配置sink类型为Logger</span><br><span class="line">a1.sinks.k1.type = logger</span><br><span class="line"></span><br><span class="line"># 配置channel类型为内存，内存队列最大容量为1000，一个事务中从source接收的Events数量或者发送给sink的Events数量最大为100</span><br><span class="line">a1.channels.c1.type = memory</span><br><span class="line">a1.channels.c1.capacity = 1000</span><br><span class="line">a1.channels.c1.transactionCapacity = 100</span><br><span class="line"></span><br><span class="line"># 将source和sink绑定到channel上</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sinks.k1.channel = c1</span><br></pre></td></tr></table></figure>
+<p>2.启动flume</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng agent -n a1 -c conf -f myconf/example8-interceptor.conf -Dflume.root.logger=INFO,console</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8718.png"><br>3.Timestamp Interceptor<br>这个拦截器将当前时间写入到事件的headers中</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">a1.sources.r1.interceptors = i1 i2</span><br><span class="line">a1.sources.r1.interceptors.i1.type = host</span><br><span class="line">a1.sources.r1.interceptors.i2.type = timestamp</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8719.png"></p>
+<p>4.Static Interceptor<br>运行用户对所有的事件添加固定的header</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">a1.sources.r1.interceptors.i3.type = static</span><br><span class="line">a1.sources.r1.interceptors.i3.key = datacenter</span><br><span class="line">a1.sources.r1.interceptors.i3.value = NEW_YORK</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8720.png"></p>
+<p>5.UUID Interceptor</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a1.sources.r1.interceptors.i4.type = org.apache.flume.sink.solr.morphline.UUIDInterceptor$Builder</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8721.png"></p>
+<p>6.Search and Replace Interceptor</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">a1.sources.r1.interceptors.i5.type = search_replace</span><br><span class="line">a1.sources.r1.interceptors.i5.searchPattern = \\d&#123;6&#125;</span><br><span class="line">a1.sources.r1.interceptors.i5.replaceString = ******1234、</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8722.png"><br><img src="/../gmr/%E5%9B%BE%E7%89%8723.png"></p>
+<p>十．自定义拦截器<br>1.新建工程，添加pom引用</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependencies&gt;</span><br><span class="line">        &lt;dependency&gt;</span><br><span class="line">            &lt;groupId&gt;org.apache.flume&lt;/groupId&gt;</span><br><span class="line">            &lt;artifactId&gt;flume-ng-core&lt;/artifactId&gt;</span><br><span class="line">            &lt;version&gt;1.9.0&lt;/version&gt;</span><br><span class="line">        &lt;/dependency&gt;</span><br><span class="line"></span><br><span class="line">    &lt;/dependencies&gt;</span><br><span class="line">    </span><br></pre></td></tr></table></figure>
+<p>2.添加自定义拦截器</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br></pre></td><td class="code"><pre><span class="line">import com.google.gson.Gson;</span><br><span class="line">import com.google.gson.reflect.TypeToken;</span><br><span class="line">import org.apache.commons.codec.digest.DigestUtils;</span><br><span class="line">import org.apache.flume.Context;</span><br><span class="line">import org.apache.flume.Event;</span><br><span class="line">import org.apache.flume.interceptor.Interceptor;</span><br><span class="line"></span><br><span class="line">import java.util.HashMap;</span><br><span class="line">import java.util.List;</span><br><span class="line">import java.util.Map;</span><br><span class="line"></span><br><span class="line">public class EventTimestampInterceptor implements Interceptor &#123;</span><br><span class="line"></span><br><span class="line">    String timeStampFiledName;</span><br><span class="line">    String toEncryFieldName;</span><br><span class="line">    String keyName;</span><br><span class="line">    Gson gson;</span><br><span class="line"></span><br><span class="line">    public EventTimestampInterceptor(String timeStampFiledName,String toEncryFieldName,String keyName)&#123;</span><br><span class="line">        this.timeStampFiledName = timeStampFiledName;</span><br><span class="line">        this.toEncryFieldName = toEncryFieldName;</span><br><span class="line">        this.keyName = keyName;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * 初始化工作所在的方法</span><br><span class="line">     * 在拦截操作之前，会被调用一次</span><br><span class="line">     */</span><br><span class="line">    public void initialize() &#123;</span><br><span class="line">        gson = new Gson();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * 拦截操作的具体逻辑所在方法</span><br><span class="line">     * @param event</span><br><span class="line">     * @return</span><br><span class="line">     */</span><br><span class="line">    public Event intercept(Event event) &#123;</span><br><span class="line"></span><br><span class="line">        byte[] body = event.getBody();</span><br><span class="line">        String lineJson = new String(body);</span><br><span class="line"></span><br><span class="line">        // 获取时间戳，放入header</span><br><span class="line">        Map&lt;String,Object&gt; map = gson.fromJson(lineJson, new TypeToken&lt;HashMap&lt;String,Object&gt;&gt;()&#123;&#125;.getType());</span><br><span class="line">        Double ts = (Double)map.get(timeStampFiledName);</span><br><span class="line">        event.getHeaders().put(keyName,ts.longValue()+&quot;&quot;);</span><br><span class="line"></span><br><span class="line">        // 将账号字段进行加密</span><br><span class="line">        String s = (String) map.get(toEncryFieldName);</span><br><span class="line">        String s1 = DigestUtils.md5Hex(s);</span><br><span class="line">        map.put(toEncryFieldName,s1);</span><br><span class="line"></span><br><span class="line">        // 将加密处理后的日志内容（map中），重新恢复成json，并set到event的body中</span><br><span class="line">        String newJson = gson.toJson(map);</span><br><span class="line">        event.setBody(newJson.getBytes());</span><br><span class="line"></span><br><span class="line">        return event;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public List&lt;Event&gt; intercept(List&lt;Event&gt; list) &#123;</span><br><span class="line"></span><br><span class="line">        for (Event event : list) &#123;</span><br><span class="line">            intercept(event);</span><br><span class="line">        &#125;</span><br><span class="line">        return list;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * agent关闭时，会调用该方法来做一些清理工作</span><br><span class="line">     */</span><br><span class="line">    public void close() &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    public static class EventTimestampInterceptorBuilder implements Builder&#123;</span><br><span class="line"></span><br><span class="line">        String timeStampFiledName;</span><br><span class="line">        String toEncryFieldName;</span><br><span class="line">        String keyName;</span><br><span class="line"></span><br><span class="line">        /**</span><br><span class="line">         * 构造拦截器实例对象的方法</span><br><span class="line">         * @return</span><br><span class="line">         */</span><br><span class="line">        public Interceptor build() &#123;</span><br><span class="line">            return new EventTimestampInterceptor(timeStampFiledName,toEncryFieldName,keyName);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        /**</span><br><span class="line">         * 从配置文件中获取配置参数的方法</span><br><span class="line">         *</span><br><span class="line">         * @param context</span><br><span class="line">         */</span><br><span class="line">        public void configure(Context context) &#123;</span><br><span class="line">            timeStampFiledName = context.getString(&quot;tsFiledName&quot;);</span><br><span class="line">            toEncryFieldName = context.getString(&quot;toEncryFieldName&quot;);</span><br><span class="line">            keyName = context.getString(&quot;keyName&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>3.将项目打成jar包后复制到Flume安装目录的lib目录中<br>4.修改上游服务器配置 taildir-f-avro.conf为</p>
+<p>taildir-f-avro-interceptor.conf</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line">#上游服务器配置example9-1-taildir-f-avro-interceptor.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.sinks = k1</span><br><span class="line"></span><br><span class="line">a1.sources.r1.type = TAILDIR</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.positionFile = /export/data/flume-example-data/flumedata/taildir_position.json</span><br><span class="line">a1.sources.r1.filegroups = g1</span><br><span class="line">a1.sources.r1.filegroups.g1 = /export/data/flume-example-data/app/event.*</span><br><span class="line">#提高吞吐量</span><br><span class="line">a1.sources.r1.batchSize = 1000</span><br><span class="line">#动态的header-keys eg：filepath=/../../../</span><br><span class="line">a1.sources.r1.fileHeaderKey = filepath</span><br><span class="line"></span><br><span class="line">#拦截器配置,添加自定义拦截器</span><br><span class="line">a1.sources.r1.interceptors = i1</span><br><span class="line">a1.sources.r1.interceptors.i1.type = ccjz.rgzn.flume.EventTimestampInterceptor$EventTimestampInterceptorBuilder</span><br><span class="line">a1.sources.r1.interceptors.i1.tsFiledName = timeStamp</span><br><span class="line">a1.sources.r1.interceptors.i1.keyName = timestamp</span><br><span class="line">a1.sources.r1.interceptors.i1.toEncryFieldName = account</span><br><span class="line"></span><br><span class="line">a1.channels.c1.type = file</span><br><span class="line">#本机数据汇集检查点、event存储目录</span><br><span class="line">a1.channels.c1.checkpointDir = /export/data/flume-example-data/flumedata/checkpoint</span><br><span class="line">a1.channels.c1.dataDirs = /export/data/flume-example-data/flumedata/data</span><br><span class="line">a1.channels.c1.transactionCapacity = 2000</span><br><span class="line"></span><br><span class="line">a1.sinks.k1.channel = c1</span><br><span class="line">a1.sinks.k1.type = avro</span><br><span class="line">a1.sinks.k1.batch-size = 1000</span><br><span class="line">#下游目标主机、端口</span><br><span class="line">a1.sinks.k1.hostname = node3</span><br><span class="line">a1.sinks.k1.port = 44444</span><br><span class="line">5.下游</span><br><span class="line">#上游服务器配置example9-1-taildir-f-avro-interceptor.conf</span><br><span class="line">a1.sources = r1</span><br><span class="line">a1.channels = c1</span><br><span class="line">a1.sinks = k1</span><br><span class="line"></span><br><span class="line">a1.sources.r1.type = TAILDIR</span><br><span class="line">a1.sources.r1.channels = c1</span><br><span class="line">a1.sources.r1.positionFile = /export/data/flume-example-data/flumedata/taildir_position.json</span><br><span class="line">a1.sources.r1.filegroups = g1</span><br><span class="line">a1.sources.r1.filegroups.g1 = /export/data/flume-example-data/app/event.*</span><br><span class="line">#提高吞吐量</span><br><span class="line">a1.sources.r1.batchSize = 1000</span><br><span class="line">#动态的header-keys eg：filepath=/../../../</span><br><span class="line">a1.sources.r1.fileHeaderKey = filepath</span><br><span class="line"></span><br><span class="line">#拦截器配置,添加自定义拦截器</span><br><span class="line">a1.sources.r1.interceptors = i1</span><br><span class="line">a1.sources.r1.interceptors.i1.type = ccjz.rgzn.flume.EventTimestampInterceptor$EventTimestampInterceptorBuilder</span><br><span class="line">a1.sources.r1.interceptors.i1.tsFiledName = timeStamp</span><br><span class="line">a1.sources.r1.interceptors.i1.keyName = timestamp</span><br><span class="line">a1.sources.r1.interceptors.i1.toEncryFieldName = account</span><br><span class="line"></span><br><span class="line">a1.channels.c1.type = file</span><br><span class="line">#本机数据汇集检查点、event存储目录</span><br><span class="line">a1.channels.c1.checkpointDir = /export/data/flume-example-data/flumedata/checkpoint</span><br><span class="line">a1.channels.c1.dataDirs = /export/data/flume-example-data/flumedata/data</span><br><span class="line">a1.channels.c1.transactionCapacity = 2000</span><br><span class="line"></span><br><span class="line">a1.sinks.k1.channel = c1</span><br><span class="line">a1.sinks.k1.type = avro</span><br><span class="line">a1.sinks.k1.batch-size = 1000</span><br><span class="line">#下游目标主机、端口</span><br><span class="line">a1.sinks.k1.hostname = node3</span><br><span class="line">a1.sinks.k1.port = 44444</span><br></pre></td></tr></table></figure>
+<p>6.自定义拦截器-级联案例操作手册</p>
+<ol>
+<li><p>启动hdfs，并检查工作状态</p>
+</li>
+<li><p>把案例的上游配置文件，保存到node1,node2上,并将自定义的拦截器jar包保存到node1和node2flume的lib中</p>
+</li>
+<li><p>把案例的下游配置文件，保存到node3上</p>
+</li>
+<li><p>启动下游node3上的flume agent</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/flume-ng agent -n a1 -c conf/ -f myconf/example9-2-avro-f-hdfs-interceptor.conf -Dflume.root.logger=DEBUG,console</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>（在node1和node2上）上传两个日志目录来生成模拟日志数据</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mkdir /export/data/flume-example-data/app/</span><br><span class="line">mkdir /export/data/flume-example-data/app/</span><br></pre></td></tr></table></figure>
+<p>6.（在node1和node2上）修改配置文件，加大flume启动内存(选做)</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mv flume-env.sh.template flume-env.sh</span><br><span class="line">#生产环境建议4G，测试环境以本机内存为参考</span><br><span class="line">export JAVA_OPTS=&quot;-Xms100m -Xmx2000m -Dcom.sun.management.jmxremote&quot;</span><br></pre></td></tr></table></figure>
+<p>7.启动node1和node2上的flume agent</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup bin/flume-ng agent -n a1 -c conf/ -f myconf/example9-1-taildir-f-avro-interceptor.conf 1&gt;/dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p>8.去hdfs上查看是否采集到数据</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop fs -text /logdata-interceptor/../../.. | tail</span><br></pre></td></tr></table></figure>
+<p><img src="/../gmr/%E5%9B%BE%E7%89%8724.png"></p>
+
+    </article>
+    
+    <div class="read-nums">
+      <!-- id 将作为查询条件 -->
+      <span id="2023/06/19/Flume部署/" class="leancloud_visitors" data-flag-title="Your Article Title">
+        <em class="post-meta-item-text">浏览量</em>
+        <i class="leancloud-visitors-count"></i>
+      </span>
+    </div>
+    <div class="comments-intro">
+      <h2>评论区</h2>
+      <p>欢迎你留下宝贵的意见，昵称输入QQ号会显示QQ头像哦~</p>
+    </div>
+    <div id="vcomments" class="vcomments"></div>
+    
+  </div>
+  <div class="article-catelogue">
+    <div class="article-catelogue--wrapper">
+      <div class="catelogue catelogue-1">
+        <h3>目录</h3>
+        
+      </div>
+      
+        <div class="catelogue catelogue-2">
+          
+            <p>
+              <span>上一篇：</span>
+              <a href="/2023/06/24/Kafka/">kafka</a>
+            </p>
+           
+          
+            <p>
+              <span>下一篇</span>
+              <a href="/2023/06/19/sqoop/">sqoop</a>
+            </p>
+          
+        </div>
+      
+    </div>
+  </div>
+</div>
+
+<script src="http://cdn.yangxiang.cc/prism.js"></script>
+
+<script>
+  // var定义，避免pjax重新进来造成的重复声明错误
+  var config = JSON.parse('{"enable":true,"appId":"Pf8zCXGEH1qsprnWfikVVujL-gzGzoHsz","appKey":"qOqoiUHhH1TGtLRUYURkLRQX","placeholder":"请留下你宝贵的意见吧~","meta":["nick"],"recordIP":true,"visitor":true,"enableQQ":true}')
+  new Valine({
+    el: '#vcomments',
+    appId: config.appId,
+    appKey: config.appKey,
+    placeholder: config.placeholder,
+    meta: config.meta,
+    recordIP: config.recordIP,
+    visitor: config.visitor,
+    enableQQ: config.enableQQ,
+    path: '2023/06/19/Flume部署/'
+  })
+</script>
+
+
+<script>
+  $(document).on('pjax:complete', function() {
+    const tocs = document.querySelector('.toc')
+    const links = tocs ? tocs.querySelectorAll('a') : []
+    links.forEach(link => {
+      link.addEventListener('click', e => {
+        const href = decodeURIComponent(e.href)
+        href.search(/#(.*)/)
+        const id = RegExp.$1
+        const target = document.querySelector('#' + id)
+        const top = target.offsetTop
+        document.documentElement.scrollTo({
+          top: top - 100,
+          behavior: 'smooth'
+        })
+        e.preventDefault()
+      })
+    })
+  })
+</script> 
+
+</div>
+      <div class="main-right-wrapper"><div class="main-right">
+  <div class="main-right--board">
+    <div class="main-right--title">
+      <h5>公告栏</h5>
+      <i class="iconfont icon-gonggao"></i>
+    </div>
+    <div class="main-right--content">
+      Hello~大家好，欢迎你们来到我的博客小站，希望能在这里收获到有用的东西哦！ 
+    </div>
+  </div>
+
+  <div id="aplayer" class="main-right--music"></div>
+
+  <div class="operate-items">
+    <div class="operate-item backtop">
+      <i class="iconfont icon-huidaodingbu"></i>
+      <span>回到顶部</span>
+    </div>
+    
+    <div class="operate-item turn-comment hidden">
+      <i class="iconfont icon-pinglun"></i>
+      <span>查看评论</span>
+    </div>
+    
+  </div>
+
+  <div class="main-right--site">
+    <div class="main-right--power">
+      <p>Power By <a target="_blank" rel="noopener" href="https://hexo.io/zh-cn/docs/">Hexo</a>.</p>
+      <p>Theme：<a target="_blank" rel="noopener" href="https://github.com/Aizener/hexo-theme-cola">Cola.</a></p>
+    </div>
+    <p class="main-right--refer"><a target="_blank" rel="noopener" href="https://beian.miit.gov.cn/#/Integrated/index">蜀ICP备2022005384号-1</a> </p>
+  </div>
+</div>
+
+<script>
+  function setOperateItem () {
+    const reg = /\d{4}\/\d{2}\/\d{2}\/.+/
+    const path = location.pathname
+    const operateDom = document.querySelector('.main-right .operate-items')
+    const commentDom = document.querySelector('.turn-comment')
+    const cateloguDom = document.querySelector('.article-catelogue > .article-catelogue--wrapper');
+
+    if (commentDom) {
+      if (reg.test(path) || path.match(/\/log\/.+/)) {
+        commentDom.classList.remove('hidden')
+        const newDom = operateDom.cloneNode(true);
+        const _backtopDom = newDom.querySelector('.backtop');
+        const _commentDom = newDom.querySelector('.turn-comment');
+        console.log(_commentDom)
+        _backtopDom.addEventListener('click', () => backTopEvent());
+        _commentDom.addEventListener('click', () => commentDomEvent());
+
+        cateloguDom.appendChild(newDom);
+      } else {
+        commentDom.classList.add('hidden')
+      }
+    }
+  }
+
+  setOperateItem()
+  const musics = JSON.parse(`[{"name":"安河桥","artist":"宋冬野","url":"http://ting6.yymp3.net:82/new25/songdongye/11.mp3","cover":"https://img2.baidu.com/it/u=1260056724,1076343118&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500"},{"name":"卡布达","artist":"暂无","url":"music/kabuda.mp3","cover":"https://img2.baidu.com/it/u=705831265,2862720033&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500"}]`)
+  const ap = new APlayer({
+    container: document.querySelector('#aplayer'),
+    audio: musics,
+  })
+
+  $(document).on('pjax:complete', function() {
+    setOperateItem()
+  })
+
+  document.querySelector('.backtop').addEventListener('click', () => {
+    backTopEvent();
+  })
+  const dom = document.querySelector('.turn-comment')
+  dom && dom.addEventListener('click', () => {
+    commentDomEvent();
+  })
+
+  function backTopEvent() {
+    document.documentElement.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
+
+  function commentDomEvent() {
+    const commentDom = document.querySelector('.comments-intro')
+    if (!commentDom) return
+    const top = commentDom.offsetTop, height = commentDom.offsetHeight
+    document.documentElement.scrollTo({
+      top: top - 2 * height,
+      behavior: 'smooth'
+    })
+  }
+</script></div>
+    </section>
+  </div>
+  <div id="progress" class="progress"></div>
+  <div id="gray" class="gray"></div>
+
+  <script>
+    function initScroll () {
+      document.addEventListener('scroll', () => {
+        const doc = document.documentElement
+        const scrollTop = doc.scrollTop
+        const pageHeight = doc.offsetHeight
+        const clientHeight = doc.clientHeight
+        const ratio = scrollTop / (pageHeight - clientHeight)
+        const progress = document.querySelector('#progress')
+        const avatarImg = document.querySelector('.main-left--avatar')
+        progress.style.width = (100 * ratio) + '%'
+        avatarImg.style.transform = `rotate(${360 * ratio}deg)`
+      })
+    }
+
+    const rootPath = "/"
+
+    const checkAndSetArticlePageLayout = () => {
+      if (/^\/?\d{4}\/\d{2}\/\d{2}\/.*/.test(location.pathname.replace(rootPath, ''))) {
+        $('.main-container, .main-right, .main-right-wrapper').addClass('is-article')
+      } else {
+        $('.main-container, .main-right, .main-right-wrapper').removeClass('is-article')
+      }
+    }
+
+    const gray = "none"
+    const setGrayStyle = () => {
+      if (gray === 'none') {
+        return
+      } else if (gray === 'index') {
+        location.pathname === '/' ? $('#gray').show() : $('#gray').hide()
+      } else if (gray === 'all') {
+        $('#gray').show()
+      }
+    }
+    setGrayStyle()
+
+
+    window.onload = function () {
+      checkAndSetArticlePageLayout()
+      setTimeout(() => {
+        $('#load').slideUp()
+        $('#container').slideToggle()
+        setTimeout(() => {
+          initScroll();
+          window.loadImageFn();
+        }, 500)
+      }, 500)
+    }
+    
+    let status = 0
+    // 对所有链接跳转事件绑定pjax容器container
+    $(document).pjax('a[target!=_blank]', '#main-container', {
+      container: '#main-container',
+      fragment: '#main-container',
+      timeout: 8000
+    })
+
+    $(document).on('pjax:start', function() {
+    })
+    $(document).on('pjax:complete', function() {
+      status = 0
+      $('.main-container').addClass('to-up').on('animationend', function() {
+        $(this).removeClass('to-up')
+      })
+      setGrayStyle()
+      checkAndSetArticlePageLayout()
+    })
+    $(document).on('pjax:popstate', function() {
+      status = -1
+      checkAndSetArticlePageLayout()
+      // $('.main-container').fadeIn()
+    })
+  </script>
+</body>
+</html>
